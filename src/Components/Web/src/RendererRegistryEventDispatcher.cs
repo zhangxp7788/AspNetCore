@@ -21,7 +21,7 @@ namespace Microsoft.AspNetCore.Components.Web
         public static Task DispatchEvent(BrowserEventDescriptor eventDescriptor, string eventArgsJson)
         {
             InterpretEventDescriptor(eventDescriptor);
-            var eventArgs = ParseEventArgsJson(eventDescriptor.EventArgsType, eventArgsJson);
+            var eventArgs = ParseEventArgsJson(eventDescriptor.EventHandlerId, eventDescriptor.EventArgsType, eventArgsJson);
             var renderer = RendererRegistry.Current.Find(eventDescriptor.BrowserRendererId);
             return renderer.DispatchEventAsync(eventDescriptor.EventHandlerId, eventDescriptor.EventFieldInfo, eventArgs);
         }
@@ -54,36 +54,30 @@ namespace Microsoft.AspNetCore.Components.Web
             }
         }
 
-        private static UIEventArgs ParseEventArgsJson(string eventArgsType, string eventArgsJson)
+        private static UIEventArgs ParseEventArgsJson(ulong eventHandlerId, string eventArgsType, string eventArgsJson)
         {
-            switch (eventArgsType)
+            try
             {
-                case "change":
-                    return DeserializeUIEventChangeArgs(eventArgsJson);
-                case "clipboard":
-                    return Deserialize<UIClipboardEventArgs>(eventArgsJson);
-                case "drag":
-                    return Deserialize<UIDragEventArgs>(eventArgsJson);
-                case "error":
-                    return Deserialize<UIErrorEventArgs>(eventArgsJson);
-                case "focus":
-                    return Deserialize<UIFocusEventArgs>(eventArgsJson);
-                case "keyboard":
-                    return Deserialize<UIKeyboardEventArgs>(eventArgsJson);
-                case "mouse":
-                    return Deserialize<UIMouseEventArgs>(eventArgsJson);
-                case "pointer":
-                    return Deserialize<UIPointerEventArgs>(eventArgsJson);
-                case "progress":
-                    return Deserialize<UIProgressEventArgs>(eventArgsJson);
-                case "touch":
-                    return Deserialize<UITouchEventArgs>(eventArgsJson);
-                case "unknown":
-                    return Deserialize<UIEventArgs>(eventArgsJson);
-                case "wheel":
-                    return Deserialize<UIWheelEventArgs>(eventArgsJson);
-                default:
-                     throw new ArgumentException($"Unsupported value '{eventArgsType}'.", nameof(eventArgsType));
+                return eventArgsType switch
+                {
+                    "change" => DeserializeUIEventChangeArgs(eventArgsJson),
+                    "clipboard" => Deserialize<UIClipboardEventArgs>(eventArgsJson),
+                    "drag" => Deserialize<UIDragEventArgs>(eventArgsJson),
+                    "error" => Deserialize<UIErrorEventArgs>(eventArgsJson),
+                    "focus" => Deserialize<UIFocusEventArgs>(eventArgsJson),
+                    "keyboard" => Deserialize<UIKeyboardEventArgs>(eventArgsJson),
+                    "mouse" => Deserialize<UIMouseEventArgs>(eventArgsJson),
+                    "pointer" => Deserialize<UIPointerEventArgs>(eventArgsJson),
+                    "progress" => Deserialize<UIProgressEventArgs>(eventArgsJson),
+                    "touch" => Deserialize<UITouchEventArgs>(eventArgsJson),
+                    "unknown" => Deserialize<UIEventArgs>(eventArgsJson),
+                    "wheel" => Deserialize<UIWheelEventArgs>(eventArgsJson),
+                    _ => throw new InvalidEventException(eventHandlerId, $"Unsupported event type '{eventArgsType}'."),
+                };
+            }
+            catch (Exception e)
+            {
+                throw new InvalidEventException(eventHandlerId, "There was an error parsing the event arguments.", e);
             }
         }
 

@@ -248,8 +248,9 @@ namespace Microsoft.AspNetCore.Components.Web.Rendering
 
                 if (lastBatchId < incomingBatchId)
                 {
-                    HandleException(
-                        new InvalidOperationException($"Received an acknowledgement for batch with id '{incomingBatchId}' when the last batch produced was '{lastBatchId}'."));
+                    // This exception is due to a bad client input, so we mark it as such to prevent loging it as a warning and
+                    // flooding the logs with warnings.
+                    throw new RemoteRendererException(badInput: true, $"Received an acknowledgement for batch with id '{incomingBatchId}' when the last batch produced was '{lastBatchId}'.");
                 }
             }
         }

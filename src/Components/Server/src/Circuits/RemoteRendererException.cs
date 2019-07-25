@@ -5,17 +5,17 @@ using System;
 
 namespace Microsoft.AspNetCore.Components.Web.Rendering
 {
-    /// <summary>
-    /// Represents an exception related to remote rendering.
-    /// </summary>
     internal class RemoteRendererException : Exception
     {
-        /// <summary>
-        /// Constructs an instance of <see cref="RemoteRendererException"/>.
-        /// </summary>
-        /// <param name="message">The exception message.</param>
         public RemoteRendererException(string message) : base(message)
         {
         }
+
+        public RemoteRendererException(bool badInput, string message) : this (message)
+        {
+            BadInput = badInput;
+        }
+
+        public bool BadInput { get; }
     }
 }

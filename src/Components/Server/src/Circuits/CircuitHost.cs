@@ -202,6 +202,18 @@ namespace Microsoft.AspNetCore.Components.Server.Circuits
             }
         }
 
+        internal void OnRenderCompleted(long renderId, string errorMessageOrNull)
+        {
+            try
+            {
+                Renderer.OnRenderCompleted(renderId, errorMessageOrNull);
+            }
+            catch (Exception e)
+            {
+                UnhandledException(this, new UnhandledExceptionEventArgs(e, isTerminating: false));
+            }
+        }
+
         private RendererRegistryEventDispatcher.BrowserEventDescriptor ParseEventDescriptor(string eventDescriptorJson)
         {
             try

@@ -4,7 +4,9 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Components.Rendering;
 using Microsoft.AspNetCore.Components.Server.Circuits;
+using Microsoft.AspNetCore.Components.Web.Rendering;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR;
@@ -192,7 +194,7 @@ namespace Microsoft.AspNetCore.Components.Server
             }
 
             Log.ReceivedConfirmationForBatch(_logger, renderId);
-            CircuitHost.Renderer.OnRenderCompleted(renderId, errorMessageOrNull);
+            CircuitHost.OnRenderCompleted(renderId, errorMessageOrNull);
         }
 
         private async void CircuitHost_UnhandledException(object sender, UnhandledExceptionEventArgs e)
@@ -202,7 +204,16 @@ namespace Microsoft.AspNetCore.Components.Server
 
             try
             {
-                Log.UnhandledExceptionInCircuit(_logger, circuitId, (Exception)e.ExceptionObject);
+                var exception = (Exception)e.ExceptionObject;
+                if (!IsBadInput(exception))
+                {
+                    Log.UnhandledExceptionInCircuit(_logger, circuitId, exception);
+                }
+                else
+                {
+                    Log.UnhandledExceptionFromBadInput(_logger, circuitId, exception);
+                }
+
                 if (_options.DetailedErrors)
                 {
                     await NotifyClientError(circuitHost.Client, e.ExceptionObject.ToString());
@@ -223,6 +234,16 @@ namespace Microsoft.AspNetCore.Components.Server
             {
                 Log.FailedToTransmitException(_logger, circuitId, ex);
             }
+        }
+
+        private bool IsBadInput(Exception exception)
+        {
+            return exception switch
+            {
+                InvalidEventException _ => true,
+                RemoteRendererException { BadInput: true } => true,
+                _ => false
+            };
         }
 
         private static Task NotifyClientError(IClientProxy client, string error) =>
@@ -248,6 +269,8 @@ namespace Microsoft.AspNetCore.Components.Server
             private static readonly Action<ILogger, string, Exception> _circuitHostNotInitialized =
                 LoggerMessage.Define<string>(LogLevel.Debug, new EventId(6, "CircuitHostNotInitialized"), "Call to '{CallSite}' received before the circuit host initialization.");
 
+            private static readonly Action<ILogger, string, Exception> _unhandledExceptionFromBadInput =
+                LoggerMessage.Define<string>(LogLevel.Debug, new EventId(7, "UnhandledExceptionFromBadInput"), "The circuit host '{CircuitId}' received bad input that resulted in an exception.");
 
             public static void NoComponentsRegisteredInEndpoint(ILogger logger, string endpointDisplayName)
             {
@@ -272,6 +295,11 @@ namespace Microsoft.AspNetCore.Components.Server
             public static void CircuitAlreadyInitialized(ILogger logger, string circuitId) => _circuitAlreadyInitialized(logger, circuitId, null);
 
             public static void CircuitHostNotInitialized(ILogger logger, [CallerMemberName] string callSite = "") => _circuitHostNotInitialized(logger, callSite, null);
+
+            internal static void UnhandledExceptionFromBadInput(ILogger logger, string circuitId, Exception exception)
+            {
+                _unhandledExceptionFromBadInput(logger, circuitId, exception);
+            }
         }
     }
 }
