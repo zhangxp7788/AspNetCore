@@ -269,7 +269,7 @@ namespace Microsoft.AspNetCore.Components.E2ETest.ServerExecutionTests
         private string Serialize<T>(T browserEventDescriptor) =>
             JsonSerializer.Serialize(browserEventDescriptor, TestJsonSerializerOptionsProvider.Options);
 
-        [DebuggerDisplay("{LogLevel.ToString()} - {Message ?? \"null\"} - {Exception?.Message},nq")]
+        [DebuggerDisplay("{LogLevel.ToString(),nq} - {Message ?? \"null\",nq} - {Exception?.Message,nq}")]
         private class LogMessage
         {
             public LogMessage(LogLevel logLevel, string message, Exception exception)

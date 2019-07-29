@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Ignitor;
 using Microsoft.AspNetCore.Components.E2ETest.Infrastructure.ServerFixtures;
+using Microsoft.AspNetCore.Components.Rendering;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
@@ -445,7 +446,7 @@ namespace Microsoft.AspNetCore.Components.E2ETest.ServerExecutionTests
             Assert.Contains(
                 logEvents,
                 e => e.eventIdName == "DispatchEventFailedToDispatchEvent" && e.logLevel == LogLevel.Debug &&
-                     e.exception is ArgumentException ae && ae.Message.Contains("There is no event handler with ID 1"));
+                     e.exception is InvalidEventException ie && ie.EventId == 1);
 
             await ValidateClientKeepsWorking(Client, batches);
         }
