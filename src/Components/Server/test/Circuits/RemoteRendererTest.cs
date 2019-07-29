@@ -344,12 +344,11 @@ namespace Microsoft.AspNetCore.Components.Web.Rendering
                 exceptions.Add(e);
             };
 
-            renderer.OnRenderCompleted(4, null);
+            var exception = Assert.Throws<RemoteRendererException>(() => renderer.OnRenderCompleted(4, null));
             firstBatchTCS.SetResult(null);
             secondBatchTCS.SetResult(null);
 
             // Assert
-            var exception = Assert.Single(exceptions);
             Assert.Equal(
                 "Received an acknowledgement for batch with id '4' when the last batch produced was '3'.",
                 exception.Message);
