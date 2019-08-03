@@ -42,6 +42,8 @@ namespace Ignitor
 
         private CancellableOperation NextErrorReceived { get; set; }
 
+        private CancellableOperation NextDisconnect { get; set; }
+
         private CancellableOperation NextJSInteropReceived { get; set; }
 
         private CancellableOperation NextDotNetInteropCompletionReceived { get; set; }
@@ -112,6 +114,18 @@ namespace Ignitor
             return NextErrorReceived.Completion.Task;
         }
 
+        public Task PrepareForNextDisconnect(TimeSpan? timeout)
+        {
+            if (NextDisconnect?.Completion != null)
+            {
+                throw new InvalidOperationException("Invalid state previous task not completed");
+            }
+
+            NextDisconnect = new CancellableOperation(timeout);
+
+            return NextDisconnect.Completion.Task;
+        }
+
         public async Task ClickAsync(string elementId)
         {
             if (!Hive.TryFindElementById(elementId, out var elementNode))
@@ -156,6 +170,22 @@ namespace Ignitor
         public async Task ExpectCircuitError(Func<Task> action, TimeSpan? timeout = null)
         {
             var task = WaitForCircuitError(timeout);
+            await action();
+            await task;
+        }
+
+        public async Task ExpectCircuitErrorAndDisconnect(Func<Task> action, TimeSpan? timeout = null)
+        {
+            // NOTE: timeout is used for each operation individually.
+            await ExpectDisconnect(async () =>
+            {
+                await ExpectCircuitError(action, timeout);
+            }, timeout);
+        }
+
+        public async Task ExpectDisconnect(Func<Task> action, TimeSpan? timeout = null)
+        {
+            var task = WaitForDisconnect(timeout);
             await action();
             await task;
         }
@@ -212,6 +242,19 @@ namespace Ignitor
 
                 await PrepareForNextCircuitError(timeout ?? DefaultLatencyTimeout);
             }
+        }
+
+        private async Task WaitForDisconnect(TimeSpan? timeout = null)
+        {
+            if (ImplicitWait)
+            {
+                if (DefaultLatencyTimeout == null && timeout == null)
+                {
+                    throw new InvalidOperationException("Implicit wait without DefaultLatencyTimeout is not allowed.");
+                }
+            }
+
+            await PrepareForNextDisconnect(timeout ?? DefaultLatencyTimeout);
         }
 
         public async Task<bool> ConnectAsync(Uri uri, bool prerendered, bool connectAutomatically = true)
@@ -319,6 +362,8 @@ namespace Ignitor
 
         private Task OnClosedAsync(Exception ex)
         {
+            NextDisconnect?.Completion?.TrySetResult(null);
+
             if (ex == null)
             {
                 TaskCompletionSource.TrySetResult(null);
