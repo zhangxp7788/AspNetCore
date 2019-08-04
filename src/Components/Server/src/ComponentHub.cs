@@ -87,15 +87,12 @@ namespace Microsoft.AspNetCore.Components.Server
             try
             {
                 Log.CircuitTerminatedGracefully(_logger, circuitHost.CircuitId);
-                _circuitRegistry.PermanentDisconnect(circuitHost);
-                await circuitHost.DisposeAsync();
+                await _circuitRegistry.TerminateAsync(circuitHost.CircuitId);
             }
             catch (Exception e)
             {
                 Log.UnhandledExceptionInCircuit(_logger, circuitHost.CircuitId, e);
             }
-
-            await _circuitRegistry.DisconnectAsync(circuitHost, Context.ConnectionId);
         }
 
         /// <summary>

@@ -81,15 +81,6 @@ namespace Microsoft.AspNetCore.Components.Server.Circuits
             }
         }
 
-        public void PermanentDisconnect(CircuitHost circuitHost)
-        {
-            if (ConnectedCircuits.TryRemove(circuitHost.CircuitId, out _))
-            {
-                Log.CircuitDisconnectedPermanently(_logger, circuitHost.CircuitId);
-                circuitHost.Client.SetDisconnected();
-            }
-        }
-
         public virtual Task DisconnectAsync(CircuitHost circuitHost, string connectionId)
         {
             Log.CircuitDisconnectStarted(_logger, circuitHost.CircuitId, connectionId);
@@ -161,6 +152,24 @@ namespace Microsoft.AspNetCore.Components.Server.Circuits
 
             var entry = new DisconnectedCircuitEntry(circuitHost, cancellationTokenSource);
             DisconnectedCircuits.Set(circuitHost.CircuitId, entry, entryOptions);
+        }
+
+        public ValueTask TerminateAsync(string circuitId)
+        {
+            CircuitHost circuitHost;
+            DisconnectedCircuitEntry entry = default;
+            lock (CircuitRegistryLock)
+            {
+                if (ConnectedCircuits.TryRemove(circuitId, out circuitHost) || DisconnectedCircuits.TryGetValue(circuitId, out entry))
+                {
+                    circuitHost ??= entry.CircuitHost;
+                    DisconnectedCircuits.Remove(circuitHost.CircuitId);
+                    Log.CircuitDisconnectedPermanently(_logger, circuitHost.CircuitId);
+                    circuitHost.Client.SetDisconnected();
+                }
+            }
+
+            return circuitHost?.DisposeAsync() ?? default;
         }
 
         public virtual async Task<CircuitHost> ConnectAsync(string circuitId, IClientProxy clientProxy, string connectionId, CancellationToken cancellationToken)
