@@ -143,6 +143,9 @@ namespace Microsoft.AspNetCore.Components.Server.Circuits
                     return;
                 }
 
+                // Make sure that no hub or connection can refer to this circuit anymore now that it's shutting down.
+                Handle.CircuitHost = null;
+
                 try
                 {
                     await OnConnectionDownAsync(CancellationToken.None);
