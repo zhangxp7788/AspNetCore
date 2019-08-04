@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Components.Web.Rendering;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 
 namespace Microsoft.AspNetCore.Components.Server.Circuits
@@ -23,16 +24,20 @@ namespace Microsoft.AspNetCore.Components.Server.Circuits
         private readonly ILoggerFactory _loggerFactory;
         private readonly ILogger _logger;
         private readonly CircuitIdFactory _circuitIdFactory;
+        private readonly IOptions<CircuitOptions> _options;
 
         public DefaultCircuitFactory(
             IServiceScopeFactory scopeFactory,
             ILoggerFactory loggerFactory,
+            IOptions<CircuitOptions> options,
             CircuitIdFactory circuitIdFactory)
         {
             _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
-            _loggerFactory = loggerFactory;
-            _logger = _loggerFactory.CreateLogger<CircuitFactory>();
+            _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
+            _options = options ?? throw new ArgumentNullException(nameof(options));
             _circuitIdFactory = circuitIdFactory ?? throw new ArgumentNullException(nameof(circuitIdFactory));
+
+            _logger = _loggerFactory.CreateLogger<CircuitFactory>();
         }
 
         public override CircuitHost CreateCircuitHost(
@@ -91,6 +96,7 @@ namespace Microsoft.AspNetCore.Components.Server.Circuits
             var circuitHost = new CircuitHost(
                 _circuitIdFactory.CreateCircuitId(),
                 scope,
+                _options,
                 client,
                 rendererRegistry,
                 renderer,

@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Ignitor;
@@ -507,15 +508,26 @@ namespace Microsoft.AspNetCore.Components.E2ETest.ServerExecutionTests
             sink.MessageLogged += (wc) => logEvents.Add((wc.LogLevel, wc.EventId.Name, wc.Exception));
 
             // Act
-            await Client.ClickAsync("event-handler-throw-sync");
+            await Client.ExpectCircuitError(async () =>
+            {
+                // We want to click the element, but don't expect a DOM update.
+                Assert.True(Client.Hive.TryFindElementById("event-handler-throw-sync", out var elementNode), "failed to find element");
+                await elementNode.ClickAsync(Client.HubConnection);
+            });
 
             Assert.Contains(
                 logEvents,
                 e => LogLevel.Warning == e.logLevel &&
-                    "UnhandledExceptionInCircuit" == e.eventIdName &&
+                    "CircuitUnhandledException" == e.eventIdName &&
                     "Handler threw an exception" == e.exception.Message);
 
-            await ValidateClientKeepsWorking(Client, batches);
+            // Now if you try to click again, you will get *forcibly* disconnected for trying to talk to
+            // a circuit that's gone.
+            await Client.ExpectCircuitErrorAndDisconnect(async () =>
+            {
+                Assert.True(Client.Hive.TryFindElementById("event-handler-throw-sync", out var elementNode), "failed to find element");
+                await Assert.ThrowsAsync<TaskCanceledException>(async () => await elementNode.ClickAsync(Client.HubConnection));
+            });
         }
 
         private Task ValidateClientKeepsWorking(BlazorClient Client, List<(int, int, byte[])> batches) =>

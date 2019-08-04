@@ -79,6 +79,10 @@ namespace Microsoft.AspNetCore.Components.Server.Circuits
                 // This will likely never happen, except perhaps in unit tests, since CircuitIds are unique.
                 throw new ArgumentException($"Circuit with identity {circuitHost.CircuitId} is already registered.");
             }
+
+            // Register for unhandled exceptions from the circuit. The registry is responsible for tearing
+            // down the circuit on errors.
+            circuitHost.UnhandledException += CircuitHost_UnhandledException;
         }
 
         public virtual Task DisconnectAsync(CircuitHost circuitHost, string connectionId)
@@ -169,7 +173,13 @@ namespace Microsoft.AspNetCore.Components.Server.Circuits
                 }
             }
 
-            return circuitHost?.DisposeAsync() ?? default;
+            if (circuitHost != null)
+            {
+                circuitHost.UnhandledException -= CircuitHost_UnhandledException;
+                return circuitHost.DisposeAsync();
+            }
+
+            return default;
         }
 
         // ConnectAsync is called from the CircuitHub - but the error handling story is a little bit complicated.
@@ -306,6 +316,7 @@ namespace Microsoft.AspNetCore.Components.Server.Circuits
 
             try
             {
+                entry.CircuitHost.UnhandledException -= CircuitHost_UnhandledException;
                 await entry.CircuitHost.DisposeAsync();
             }
             catch (Exception ex)
@@ -323,6 +334,24 @@ namespace Microsoft.AspNetCore.Components.Server.Circuits
             catch (Exception ex)
             {
                 Log.ExceptionDisposingTokenSource(_logger, ex);
+            }
+        }
+
+        // We don't need to do anything with the exception here, logging and sending exceptions to the client
+        // is done inside the circuit host.
+        private async void CircuitHost_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            var circuitHost = (CircuitHost)sender;
+
+            try
+            { 
+                // This will dispose the circuit and remove it from the registry.
+                await TerminateAsync(circuitHost.CircuitId);
+            }
+            catch (Exception ex)
+            {
+                // We don't expect TerminateAsync to throw, but we want exceptions here for completeness.
+                Log.CircuitExceptionHandlerFailed(_logger, circuitHost.CircuitId, ex);
             }
         }
 
@@ -354,6 +383,7 @@ namespace Microsoft.AspNetCore.Components.Server.Circuits
             private static readonly Action<ILogger, string, Exception> _circuitMarkedDisconnected;
             private static readonly Action<ILogger, string, Exception> _circuitDisconnectedPermanently;
             private static readonly Action<ILogger, string, EvictionReason, Exception> _circuitEvicted;
+            private static readonly Action<ILogger, string, Exception> _circuitExceptionHandlerFailed;
 
             private static class EventIds
             {
@@ -370,6 +400,7 @@ namespace Microsoft.AspNetCore.Components.Server.Circuits
                 public static readonly EventId CircuitMarkedDisconnected = new EventId(110, "CircuitMarkedDisconnected");
                 public static readonly EventId CircuitEvicted = new EventId(111, "CircuitEvicted");
                 public static readonly EventId CircuitDisconnectedPermanently = new EventId(112, "CircuitDisconnectedPermanently");
+                public static readonly EventId CircuitExceptionHandlerFailed = new EventId(113, "CircuitExceptionHandlerFailed");
             }
 
             static Log()
@@ -443,6 +474,11 @@ namespace Microsoft.AspNetCore.Components.Server.Circuits
                     LogLevel.Debug,
                     EventIds.CircuitEvicted,
                     "Circuit with id {CircuitId} evicted due to {EvictionReason}.");
+
+                _circuitExceptionHandlerFailed = LoggerMessage.Define<string>(
+                    LogLevel.Error,
+                    EventIds.CircuitExceptionHandlerFailed,
+                    "Exception handler for {CurcuitId} failed.");
             }
 
             public static void UnhandledExceptionDisposingCircuitHost(ILogger logger, Exception exception) =>
@@ -486,6 +522,9 @@ namespace Microsoft.AspNetCore.Components.Server.Circuits
 
             public static void CircuitEvicted(ILogger logger, string circuitId, EvictionReason evictionReason) =>
                _circuitEvicted(logger, circuitId, evictionReason, null);
+
+            public static void CircuitExceptionHandlerFailed(ILogger logger, string circuitId, Exception exception) =>
+                _circuitExceptionHandlerFailed(logger, circuitId, exception);
         }
     }
 }
