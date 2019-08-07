@@ -10,7 +10,6 @@ build of ASP.NET Core 2.2.x. Update this list when preparing for a new patch.
   <Package Id="dotnet-user-secrets" Version="2.2.0" />
   <Package Id="dotnet-watch" Version="2.2.0" />
   <Package Id="Microsoft.AspNetCore.Antiforgery" Version="2.2.0" />
-  <Package Id="Microsoft.AspNetCore.ApiAuthorization.IdentityServer" Version="2.2.0-preview-35687" />
   <Package Id="Microsoft.AspNetCore.ApplicationInsights.HostingStartup" Version="2.2.0" />
   <Package Id="Microsoft.AspNetCore.AspNetCoreModule" Version="2.2.6" />
   <Package Id="Microsoft.AspNetCore.AspNetCoreModuleV2" Version="2.2.6" />

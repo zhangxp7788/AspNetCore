@@ -31,19 +31,6 @@
     <BaselinePackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="[2.2.0, )" />
     <BaselinePackageReference Include="Microsoft.Extensions.ObjectPool" Version="[2.2.0, )" />
   </ItemGroup>
-  <!-- Package: Microsoft.AspNetCore.ApiAuthorization.IdentityServer-->
-  <PropertyGroup Condition=" '$(PackageId)' == 'Microsoft.AspNetCore.ApiAuthorization.IdentityServer' ">
-    <BaselinePackageVersion>2.2.0-preview-35687</BaselinePackageVersion>
-  </PropertyGroup>
-  <ItemGroup Condition=" '$(PackageId)' == 'Microsoft.AspNetCore.ApiAuthorization.IdentityServer' AND '$(TargetFramework)' == 'netstandard2.0' ">
-    <BaselinePackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="[2.2.0, )" />
-    <BaselinePackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="[2.2.0, )" />
-    <BaselinePackageReference Include="IdentityServer4" Version="[2.3.0-preview1-update2, )" />
-    <BaselinePackageReference Include="IdentityServer4.AspNetIdentity" Version="[2.3.0-preview1-update2, )" />
-    <BaselinePackageReference Include="IdentityServer4.EntityFramework" Version="[2.3.0-preview1-update1, )" />
-    <BaselinePackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="[2.2.0, )" />
-    <BaselinePackageReference Include="Microsoft.AspNetCore.Mvc" Version="[2.2.0, )" />
-  </ItemGroup>
   <!-- Package: Microsoft.AspNetCore.ApplicationInsights.HostingStartup-->
   <PropertyGroup Condition=" '$(PackageId)' == 'Microsoft.AspNetCore.ApplicationInsights.HostingStartup' ">
     <BaselinePackageVersion>2.2.0</BaselinePackageVersion>
